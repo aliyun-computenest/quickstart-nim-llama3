@@ -27,40 +27,25 @@ https://docs.nvidia.com/nim/large-language-models/latest/getting-started.html#ge
 | AliyunComputeNestUserFullAccess | 管理计算巢服务（ComputeNest）的用户侧权限 |
 
 ## 部署流程
-
 ### 部署步骤
 
-1. 单击[部署链接](https://computenest.console.aliyun.com/service/instance/create/cn-hangzhou?type=user&ServiceId=service-8cd0757070b848a399e4)，进入服务实例部署界面，根据界面提示，填写参数完成部署。
-2. 
-3. 补充示意图。
-```
-### 部署参数说明
-
-`(部署参数说明内容)`
-
-```
-eg:
-
-您在创建服务实例的过程中，需要配置服务实例信息。下文介绍云XR实时渲染平台服务实例输入参数的详细信息。
-
-| 参数组 | 参数项 | 示例 | 说明 |
-| --- | --- | --- | --- |
-| 服务实例名称 |  | test | 实例的名称 |
-| 地域 |  | 华北2（北京） | 选中服务实例的地域，建议就近选中，以获取更好的网络延时。 |
-```
-
-### 验证结果
-
-`(验证结果内容)`
-
-```
-eg:
-
-1. 查看服务实例。服务实例创建成功后，部署时间大约需要2分钟。部署完成后，页面上可以看到对应的服务实例。 
-2. 通过服务实例访问TuGraph。进入到对应的服务实例后，可以在页面上获取到web、rpc、ssh共3种使用方式。
-```
+1. 单击[部署链接](https://computenest.console.aliyun.com/service/instance/create/cn-hangzhou?type=user&ServiceId=service-8cd0757070b848a399e4)，
+进入服务实例部署界面，根据界面提示，填写参数完成部署。
+   ![image.png](1.png)
+   ![image.png](2.jpg)
+2. 参数填写完成后可以看到对应询价明细，确认参数后点击**下一步：确认订单**。
+   ![image.png](3.jpg)
+3. 确认订单完成后同意服务协议并点击**立即创建**
+   进入部署阶段。
+4. 等待部署完成后就可以开始使用服务，进入服务实例详情查看使用说明。通过cURL发送HTTP请求访问推理服务，修改content的内容，即可自定义和推理服务交互的内容。
+   ![image.png](4.png)
 
 ## 使用流程
 
-`(服务使用说明内容)`
+根据服务实例详情页中使用说明的藐视，发送请求到推理服务，例如在终端中使用cURL发送HTTP请求，修改content的内容，即可自定义和推理服务交互的内容。
+如下图所示为与推理服务两次进行交互的请求和响应。
+![image.png](5.png)
+
+
+
 
