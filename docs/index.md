@@ -8,10 +8,11 @@
 
 ## 前提准备
 
-使用NVIDIA NIM需要一个API Key， API Key是一个身份验证令牌, 从NVIDIA的NGC仓库下载模型和容器需要使用API Key进行身份验证。
-参考 NVIDIA NIM 文档，生成 NVIDIA NGC API key，访问需要部署的模型镜像，比如本文中使用的 Llama3-8b-instruct：
-https://docs.nvidia.com/nim/large-language-models/latest/getting-started.html#generate-an-api-key
-
+   使用NVIDIA NIM需要一个API Key， API Key是一个身份验证令牌, 从NVIDIA的NGC仓库下载模型和容器需要使用API Key进行身份验证， 只有正确的API Key才能保证部署成功。
+本服务用到的API Key请到此[链接](https://build.nvidia.com/meta/llama3-8b?integrate_nim=true&self_hosted_api=true)申请，参考下图所示：
+![image.png](6.png).
+详情请参考 NVIDIA NIM 文档，生成 NVIDIA NGC API key，访问需要部署的模型镜像。
+  
 ## RAM账号所需权限
 
 部署服务实例，需要对部分阿里云资源进行访问和创建操作。因此您的账号需要包含如下资源的权限。 说明：当您的账号是RAM账号时，才需要添加此权限
@@ -45,6 +46,99 @@ https://docs.nvidia.com/nim/large-language-models/latest/getting-started.html#ge
 根据服务实例详情页中使用说明的藐视，发送请求到推理服务，例如在终端中使用cURL发送HTTP请求，修改content的内容，即可自定义和推理服务交互的内容。
 如下图所示为与推理服务两次进行交互的请求和响应。
 ![image.png](5.png)
+
+## FAQ
+### 部署卡到81%是什么原因？该怎么解决？
+部署流程卡到81%大概率是部署的时候拉取镜像和模型失败了，需要到ACK集群里确定具体原因。以下是具体排查步骤和解决方案：
+- 在计算巢服务实例->资源标签下找到Kubernetes集群，进去到ACK控制台查看集群状态
+- 在任务中查看“arena-client-config-job”这个job的状态，看是否有成功的Pod, 有失败的Pod是正常的，一般在失败5个之后会有成功的，若一直没有成功的Pod，可点击进去查看Job的执行日志。
+  ![image.png](7.png)
+- 若上述有成功的Pod, 在无状态中查看“llama3-8b-instruct-predictor”的状态
+  ![image.png](8.png)
+  查看Pod的事件，如果是以下报错，说明是API Key设置的不正确，或者API Key已经失效，导致镜像下载失败。
+  ![image.png](9.png)
+- 针对上述API Key失效的问题，需要按照前提准备章节中的说明，重新申请NVIDIA API Key, 并有两种解决方案：
+
+**方案一：**删掉当前部署的服务实例，使用重新申请的NVIDIA API Key 重新部署新的服务实例，推荐此种方法，更加简单。
+
+**方案二：**针对当前环境，手动修改集群中的相关配置，步骤如下 
+  1. 按照下图编辑Secret中“ngc-secret”和"nvidia-nim-secrets"中的相关配置，设置为重新申请的NVIDIA API Key。
+     ![image.png](10.png)
+     ![image.png](11.png)
+  2. 在任务中点击“使用Yaml创建资源”
+     ![image.png](12.png)
+     将以下内容粘贴进去并点击创建
+     ```
+     apiVersion: batch/v1
+     kind: Job
+     metadata:
+     name: arena-client-config-job-1
+     namespace: default
+     spec:
+     template:
+     metadata:
+     name: arena-client-config-job-1
+     spec:
+     containers:
+      - args:
+          - >
+
+              set -x
+
+              cd ~
+
+              mkdir -p ~/.kube
+
+              echo '' | base64 -d >> ~/.kube/config
+
+              wget
+              'https://computenest-artifacts-cn-hangzhou.oss-cn-hangzhou-internal.aliyuncs.com/1853370294850618/cn-beijing/1728874973220/arena-installer-0.9.16-881780f-linux-amd64.tar.gz'
+              -O arena-installer-0.9.16-881780f-linux-amd64.tar.gz
+
+              tar -xvf arena-installer-0.9.16-881780f-linux-amd64.tar.gz 
+
+              cd arena-installer
+
+              bash install.sh --only-binary
+
+              arena serve delete llama3-8b-instruct
+
+              arena serve kserve \
+                --name=llama3-8b-instruct \
+                --image=nvcr.io/nim/meta/llama3-8b-instruct:1.0.0 \
+                --image-pull-secret=ngc-secret \
+                --gpus=1 \
+                --cpu=4 \
+                --memory=16Gi \
+                --share-memory=16Gi \
+                --port=8000 \
+                --security-context runAsUser=0 \
+                --annotation=serving.kserve.io/autoscalerClass=external \
+                --env NIM_CACHE_PATH=/mnt/models \
+                --env-from-secret NGC_API_KEY=nvidia-nim-secrets \
+                --enable-prometheus=true \
+                --metrics-port=8000 \
+                --data=nim-model:/mnt/models
+          command:
+            - /bin/sh
+            - '-c'
+            - '--'
+          image: >-
+            compute-nest-registry.cn-hangzhou.cr.aliyuncs.com/public/dtzar/helm-kubectl:3.12.0
+          imagePullPolicy: IfNotPresent
+          name: arena-client-config-job
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: arena-client-sa
+      serviceAccountName: arena-client-sa
+     ```
+
+
 
 
 
