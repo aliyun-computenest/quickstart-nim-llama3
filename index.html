@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="计算巢是阿里云开放给企业应用服务商的服务管理平台。服务商能够在计算巢上发布私有化部署服务，为其客户提供云上软件一键部署的能力；同时也支持全托管模式的服务，赋能服务商托管其客户资源。">
+  <title>基于NVIDIA NIM快速部署LLM模型推理服务的部署说明 - Aliyun 计算巢 x Demo</title>
+
+  <link rel="shortcut icon" href="img/favicon.ico">
+
+  <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css">
+  <link rel="stylesheet" href="css/theme.css">
+  
+
+  
+
+  
+  
+
+  
+    <script src="search/main.js"></script>
+  
+
+  
+
+  <script src="js/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="nav-inner">
+        <div class="logo">
+          <img src="./img/logo-2x.png">
+        </div>
+        <div class="nav-list">
+          <ul>
+          
+              <li><a href="#nvidia-nimllm">基于NVIDIA NIM快速部署LLM模型推理服务的部署说明</a></li>
+              
+                  <li><a href="#_1">概述</a></li>
+                  
+              
+                  <li><a href="#_2">前提准备</a></li>
+                  
+              
+                  <li><a href="#ram">RAM账号所需权限</a></li>
+                  
+              
+                  <li><a href="#_3">部署流程</a></li>
+                  
+                      <li class="li-h3"><a href="#_4">部署步骤</a></li>
+                  
+              
+                  <li><a href="#_5">使用流程</a></li>
+                  
+              
+                  <li><a href="#faq">FAQ</a></li>
+                  
+                      <li class="li-h3"><a href="#81">部署卡到81%是什么原因？该怎么解决？</a></li>
+                  
+              
+          
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="content theme-github">
+      
+      <div class="content-inner">        
+        
+        <h1 id="nvidia-nimllm">基于NVIDIA NIM快速部署LLM模型推理服务的部署说明</h1>
+<blockquote>
+<p><strong>免责声明：</strong>本服务由第三方提供，我们尽力确保其安全性、准确性和可靠性，但无法保证其完全免于故障、中断、错误或攻击。因此，本公司在此声明：对于本服务的内容、准确性、完整性、可靠性、适用性以及及时性不作任何陈述、保证或承诺，不对您使用本服务所产生的任何直接或间接的损失或损害承担任何责任；对于您通过本服务访问的第三方网站、应用程序、产品和服务，不对其内容、准确性、完整性、可靠性、适用性以及及时性承担任何责任，您应自行承担使用后果产生的风险和责任；对于因您使用本服务而产生的任何损失、损害，包括但不限于直接损失、间接损失、利润损失、商誉损失、数据损失或其他经济损失，不承担任何责任，即使本公司事先已被告知可能存在此类损失或损害的可能性；我们保留不时修改本声明的权利，因此请您在使用本服务前定期检查本声明。如果您对本声明或本服务存在任何问题或疑问，请联系我们。</p>
+</blockquote>
+<h2 id="_1">概述</h2>
+<p>NVIDIA NIM 是 NVIDIA AI Enterprise 的一部分， 是一套易于使用的预构建容器工具， 目的是帮助企业加速生成式 AI 的部署。它支持各种 AI 模型，可确保利用行业标准 API 在本地或云端进行无缝、可扩展的 AI 推理。本服务针对llama3-8b-instruct模型，基于NVIDIA NIM提供了一套开箱即用的方案，本方案可以快速构建一个高性能、可观测、灵活弹性的LLM模型推理服务</p>
+<h2 id="_2">前提准备</h2>
+<p>使用NVIDIA NIM需要一个API Key， API Key是一个身份验证令牌, 从NVIDIA的NGC仓库下载模型和容器需要使用API Key进行身份验证， 只有正确的API Key才能保证部署成功。
+本服务用到的API Key请到此<a href="https://build.nvidia.com/meta/llama3-8b?integrate_nim=true&amp;self_hosted_api=true">链接</a>申请，参考下图所示：
+<img alt="image.png" src="6.png" />.
+详情请参考 NVIDIA NIM 文档，生成 NVIDIA NGC API key，访问需要部署的模型镜像。</p>
+<h2 id="ram">RAM账号所需权限</h2>
+<p>部署服务实例，需要对部分阿里云资源进行访问和创建操作。因此您的账号需要包含如下资源的权限。 说明：当您的账号是RAM账号时，才需要添加此权限</p>
+<table>
+<thead>
+<tr>
+<th>权限策略名称</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AliyunECSFullAccess</td>
+<td>管理云服务器服务（ECS）的权限</td>
+</tr>
+<tr>
+<td>AliyunBSSReadOnlyAccess</td>
+<td>只读访问费用中心（BSS）的权限</td>
+</tr>
+<tr>
+<td>AliyunCSFullAccess</td>
+<td>管理容器服务（CS）的权限</td>
+</tr>
+<tr>
+<td>AliyunVPCFullAccess</td>
+<td>管理专有网络（VPC）的权限</td>
+</tr>
+<tr>
+<td>AliyunROSFullAccess</td>
+<td>管理资源编排服务（ROS）的权限</td>
+</tr>
+<tr>
+<td>AliyunSLBFullAccess</td>
+<td>管理负载均衡服务（SLB）的权限</td>
+</tr>
+<tr>
+<td>AliyunComputeNestUserFullAccess</td>
+<td>管理计算巢服务（ComputeNest）的用户侧权限</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_3">部署流程</h2>
+<h3 id="_4">部署步骤</h3>
+<ol>
+<li>单击<a href="https://computenest.console.aliyun.com/service/instance/create/cn-hangzhou?type=user&amp;ServiceId=service-8cd0757070b848a399e4">部署链接</a>，
+进入服务实例部署界面，根据界面提示，填写参数完成部署。
+   <img alt="image.png" src="1.png" />
+   <img alt="image.png" src="2.jpg" /></li>
+<li>参数填写完成后可以看到对应询价明细，确认参数后点击<strong>下一步：确认订单</strong>。
+   <img alt="image.png" src="3.jpg" /></li>
+<li>确认订单完成后同意服务协议并点击<strong>立即创建</strong>
+   进入部署阶段。</li>
+<li>等待部署完成后就可以开始使用服务，进入服务实例详情查看使用说明。通过cURL发送HTTP请求访问推理服务，修改content的内容，即可自定义和推理服务交互的内容。
+   <img alt="image.png" src="4.png" /></li>
+</ol>
+<h2 id="_5">使用流程</h2>
+<p>根据服务实例详情页中使用说明的藐视，发送请求到推理服务，例如在终端中使用cURL发送HTTP请求，修改content的内容，即可自定义和推理服务交互的内容。
+如下图所示为与推理服务两次进行交互的请求和响应。
+<img alt="image.png" src="5.png" /></p>
+<h2 id="faq">FAQ</h2>
+<h3 id="81">部署卡到81%是什么原因？该怎么解决？</h3>
+<p>部署流程卡到81%大概率是部署的时候拉取镜像和模型失败了，需要到ACK集群里确定具体原因。以下是具体排查步骤和解决方案：
+- 在计算巢服务实例-&gt;资源标签下找到Kubernetes集群，进去到ACK控制台查看集群状态
+- 在任务中查看“arena-client-config-job”这个job的状态，看是否有成功的Pod, 有失败的Pod是正常的，一般在失败5个之后会有成功的，若一直没有成功的Pod，可点击进去查看Job的执行日志。
+  <img alt="image.png" src="7.png" />
+- 若上述有成功的Pod, 在无状态中查看“llama3-8b-instruct-predictor”的状态
+  <img alt="image.png" src="8.png" />
+  查看Pod的事件，如果是以下报错，说明是API Key设置的不正确，或者API Key已经失效，导致镜像下载失败。
+  <img alt="image.png" src="9.png" />
+- 针对上述API Key失效的问题，需要按照前提准备章节中的说明，重新申请NVIDIA API Key, 并有两种解决方案：</p>
+<p><strong>方案一：</strong>删掉当前部署的服务实例，使用重新申请的NVIDIA API Key 重新部署新的服务实例，推荐此种方法，更加简单。</p>
+<p><strong>方案二：</strong>针对当前环境，手动修改集群中的相关配置，步骤如下 
+  1. 按照下图编辑Secret中“ngc-secret”和"nvidia-nim-secrets"中的相关配置，设置为重新申请的NVIDIA API Key。
+     <img alt="image.png" src="10.png" />
+     <img alt="image.png" src="11.png" />
+  2. 在任务中点击“使用Yaml创建资源”
+     <img alt="image.png" src="12.png" />
+     将以下内容粘贴进去并点击创建
+     ```
+     apiVersion: batch/v1
+     kind: Job
+     metadata:
+     name: arena-client-config-job-1
+     namespace: default
+     spec:
+     template:
+     metadata:
+     name: arena-client-config-job-1
+     spec:
+     containers:
+      - args:
+          - &gt;</p>
+<pre><code>          set -x
+
+          cd ~
+
+          mkdir -p ~/.kube
+
+          echo '' | base64 -d &gt;&gt; ~/.kube/config
+
+          wget
+          'https://computenest-artifacts-cn-hangzhou.oss-cn-hangzhou-internal.aliyuncs.com/1853370294850618/cn-beijing/1728874973220/arena-installer-0.9.16-881780f-linux-amd64.tar.gz'
+          -O arena-installer-0.9.16-881780f-linux-amd64.tar.gz
+
+          tar -xvf arena-installer-0.9.16-881780f-linux-amd64.tar.gz
+
+          cd arena-installer
+
+          bash install.sh --only-binary
+
+          arena serve delete llama3-8b-instruct
+
+          arena serve kserve \
+            --name=llama3-8b-instruct \
+            --image=nvcr.io/nim/meta/llama3-8b-instruct:1.0.0 \
+            --image-pull-secret=ngc-secret \
+            --gpus=1 \
+            --cpu=4 \
+            --memory=16Gi \
+            --share-memory=16Gi \
+            --port=8000 \
+            --security-context runAsUser=0 \
+            --annotation=serving.kserve.io/autoscalerClass=external \
+            --env NIM_CACHE_PATH=/mnt/models \
+            --env-from-secret NGC_API_KEY=nvidia-nim-secrets \
+            --enable-prometheus=true \
+            --metrics-port=8000 \
+            --data=nim-model:/mnt/models
+      command:
+        - /bin/sh
+        - '-c'
+        - '--'
+      image: &gt;-
+        compute-nest-registry.cn-hangzhou.cr.aliyuncs.com/public/dtzar/helm-kubectl:3.12.0
+      imagePullPolicy: IfNotPresent
+      name: arena-client-config-job
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+  dnsPolicy: ClusterFirst
+  restartPolicy: Never
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: arena-client-sa
+  serviceAccountName: arena-client-sa
+ ```
+</code></pre>
+        
+      </div>
+
+      <div class="copyrights">© 2009-2022 Aliyun.com 版权所有</div>
+    </div>
+  </div>
+  
+  <!--
+  MkDocs version      : 1.6.1
+  Docs Build Date UTC : 2024-10-17 07:19:00.096115+00:00
+  -->
+</body>
+</html>
